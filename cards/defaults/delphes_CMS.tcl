@@ -14,7 +14,8 @@ set ExecutionPath {
   MuonMomentumSmearing
 
   TrackMerger
- 
+  TrackSmearing
+
   ECal
   HCal
  
@@ -204,6 +205,46 @@ module Merger TrackMerger {
   add InputArray ElectronMomentumSmearing/electrons
   add InputArray MuonMomentumSmearing/muons
   set OutputArray tracks
+}
+
+##############
+# Track impact-parameter smearing
+#
+# Smears the transverse (D0) and longitudinal (DZ) impact parameters of the
+# merged tracks and FILLS their uncertainties (ErrorD0, ErrorDZ), which the
+# bare ParticlePropagator leaves at zero. Momentum/angles are NOT re-smeared
+# here (resolution 0) since the per-species MomentumSmearing modules upstream
+# already handle them. Resolutions are mm, a CMS-like constant (alignment)
+# term added in quadrature with a 1/pT multiple-scattering term, degraded in
+# the forward region. Only the full `Track` collection is written from the
+# smeared tracks; the calorimeter / particle-flow chain deliberately keeps
+# reading TrackMerger/tracks (SimpleCalorimeter's eflow does not repopulate the
+# track calo-face position after re-smearing, which would drop eflow tracks).
+##############
+
+module TrackSmearing TrackSmearing {
+  set InputArray TrackMerger/tracks
+  set OutputArray tracks
+
+  # CMS solenoid field [T]
+  set Bz 3.8
+
+  # keep already-smeared momentum / angles untouched
+  set PResolutionFormula        { 0.0 }
+  set CtgThetaResolutionFormula { 0.0 }
+  set PhiResolutionFormula      { 0.0 }
+
+  # transverse impact parameter resolution [mm]
+  set D0ResolutionFormula {
+    (abs(eta) <= 1.5) * sqrt( 0.015^2 + (0.030/pt)^2 ) +
+    (abs(eta) >  1.5) * sqrt( 0.025^2 + (0.060/pt)^2 )
+  }
+
+  # longitudinal impact parameter resolution [mm]
+  set DZResolutionFormula {
+    (abs(eta) <= 1.5) * sqrt( 0.025^2 + (0.060/pt)^2 ) +
+    (abs(eta) >  1.5) * sqrt( 0.050^2 + (0.150/pt)^2 )
+  }
 }
 
 
@@ -826,7 +867,7 @@ module TreeWriter TreeWriter {
 # add Branch InputArray BranchName BranchClass
   add Branch Delphes/allParticles Particle GenParticle
 
-  add Branch TrackMerger/tracks Track Track
+  add Branch TrackSmearing/tracks Track Track
   add Branch Calorimeter/towers Tower Tower
 
   add Branch HCal/eflowTracks EFlowTrack Track

@@ -1,0 +1,9 @@
+# W+W- with the two W's forced to an opposite-flavor e-mu final state.
+# Both charge assignments included so the sample is charge-symmetric.
+# Decays written explicitly so the leptons/neutrinos land in the LHE parton tree.
+
+import model sm
+define p = g u c d s u~ c~ d~ s~
+
+generate    p p > w+ w-, w+ > e+ ve,  w- > mu- vm~
+add process p p > w+ w-, w+ > mu+ vm, w- > e- ve~

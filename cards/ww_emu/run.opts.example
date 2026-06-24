@@ -1,0 +1,5 @@
+# Optional MG5 launch overrides. Rename to `run.opts` to activate.
+# Each line is spliced into the MG5 `launch` step as a `set` command.
+# Example (improves unweighting efficiency for VBF / EW processes):
+# set sde_strategy 1
+# set hard_survey 1

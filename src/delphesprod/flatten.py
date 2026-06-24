@@ -96,6 +96,12 @@ RECO_BRANCHES = {
     "EFlowTrack":         ["PT", "Eta", "Phi", "Charge", "PID"],
     "EFlowPhoton":        ["ET", "Eta", "Phi"],
     "EFlowNeutralHadron": ["ET", "Eta", "Phi"],
+    # Full tracking collection (all charged tracks). Same kinematics as
+    # EFlowTrack plus impact-parameter info: D0/DZ are the transverse and
+    # longitudinal impact parameters (mm) and ErrorD0/ErrorDZ their
+    # resolutions, filled by the TrackSmearing module in the Delphes card.
+    "Track":              ["PT", "Eta", "Phi", "Charge", "PID",
+                           "D0", "DZ", "ErrorD0", "ErrorDZ"],
 }
 
 

@@ -79,6 +79,8 @@ One parquet row per event:
 | `reco_Photon_{PT,Eta,Phi,IsolationVar}` | jagged | photons |
 | `reco_MissingET_{MET,Phi}` | jagged | MET |
 | `reco_EFlow{Track,Photon,NeutralHadron}_*` | jagged | PF constituents (when in the Delphes card) |
+| `reco_Track_{PT,Eta,Phi,Charge,PID}` | jagged | full tracking collection |
+| `reco_Track_{D0,DZ,ErrorD0,ErrorDZ}` | jagged float | track impact parameters + resolutions [mm] (from the `TrackSmearing` module) |
 | `parton_{pdg,status,mother1,mother2}` | jagged int | LHE hard-process tree |
 | `parton_{px,py,pz,E,mass}` | jagged float | LHE 4-momenta |
 
