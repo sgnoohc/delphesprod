@@ -58,6 +58,64 @@ $WORK/delphesprod/samples/ww/flat/ww_seed1.parquet
 
 (plus `lhe/`, `hepmc/`, `delphes/`, and per-stage `logs/` under `samples/ww/`).
 
+## Inspecting the output
+
+```bash
+source setup/env.sh
+PYTHONPATH=src python3 - <<'PY'
+import pyarrow.parquet as pq
+t = pq.ParquetFile("samples/ww/flat/ww_seed1.parquet").read()
+names = [f.name for f in t.schema]
+for n in names:                       # first event = row 0
+    print(f"{n} = {t.column(n)[0].as_py()}")
+PY
+```
+
+First event (`event_idx = 0`) of `samples/ww/flat/ww_seed1.parquet`. The
+`parton_*` block is the LHE hard process — incoming `u u~` (pdg ±2, status -1)
+producing `W+ W-` (pdg ±24, status 1, mass 80.42 GeV); the `reco_*` block is the
+Delphes detector response. Bulky particle-flow arrays are truncated here with
+`…` (the snippet above prints them in full):
+
+```
+process            = ww
+event_idx          = 0
+
+# --- reco: jets (5) ---
+reco_Jet_PT        = [85.476, 77.059, 43.990, 35.027, 22.502]
+reco_Jet_Eta       = [-2.124, -3.572, -2.457, -3.655, -3.028]
+reco_Jet_Phi       = [-1.752, 2.344, 0.238, 1.168, -1.308]
+reco_Jet_Mass      = [13.228, 9.140, 6.468, 2.524, 2.778]
+reco_Jet_BTag      = [0, 0, 0, 0, 0]
+reco_Jet_TauTag    = [0, 0, 0, 0, 0]
+reco_Jet_Flavor    = [21, 0, 3, 0, 0]
+
+# --- reco: leptons / photons (none in this event) ---
+reco_Electron_*    = []        (PT, Eta, Phi, Charge, IsolationVar)
+reco_Muon_*        = []        (PT, Eta, Phi, Charge, IsolationVar)
+reco_Photon_*      = []        (PT, Eta, Phi, IsolationVar)
+
+# --- reco: missing ET ---
+reco_MissingET_MET = [14.555]
+reco_MissingET_Phi = [0.673]
+
+# --- reco: particle-flow constituents (counts) ---
+reco_EFlowTrack_*         = 42 tracks   e.g. PT[0:3]=[0.681, 3.603, 3.582], PID[0:3]=[211, 211, -211]
+reco_EFlowPhoton_*        = 36 photons  e.g. ET[0:3]=[0.452, 0.828, 0.887]
+reco_EFlowNeutralHadron_* = 70 hadrons  e.g. ET[0:3]=[0.776, 0.573, 2.359]
+
+# --- parton: LHE hard process  u u~ -> W+ W- ---
+parton_pdg         = [-2, 2, 24, -24]            # u~, u, W+, W-
+parton_status      = [-1, -1, 1, 1]              # -1 = incoming, 1 = outgoing
+parton_mother1     = [0, 0, 1, 1]
+parton_mother2     = [0, 0, 2, 2]
+parton_px          = [-0.0, 0.0, -57.043, 57.043]
+parton_py          = [0.0, -0.0, -1.508, 1.508]
+parton_pz          = [3.310, -3157.851, -1994.493, -1160.048]
+parton_E           = [3.310, 3157.851, 1996.929, 1164.232]
+parton_mass        = [0.0, 0.0, 80.419, 80.419]  # both W bosons on-shell
+```
+
 ## Notes
 - **Already bootstrapped?** Skip steps 0–4. From an existing checkout the whole
   thing is just steps 5–6 (and step 5's `init` only once).
