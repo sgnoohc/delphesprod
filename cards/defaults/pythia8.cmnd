@@ -1,0 +1,28 @@
+! Pythia8 shower/hadronization settings for SANDY.
+! Beams:LHEF, HEPMCoutput:file, and Main:numberOfEvents are injected by 02_shower.sh.
+! Keep this card focused on physics knobs.
+
+! Tune (Monash 2013 default; close to a CMS-like baseline)
+Tune:pp = 14
+
+! Underlying-event activity on (matches CMS production conditions)
+PartonLevel:MPI = on
+PartonLevel:ISR = on
+PartonLevel:FSR = on
+HadronLevel:Hadronize = on
+
+! Decays — let stable hadrons stay stable so Delphes sees them
+ParticleDecays:limitTau0 = on
+ParticleDecays:tau0Max   = 10.0
+
+! Be tolerant of LHE bookkeeping mismatches at LO
+Check:epTolErr = 1e-2
+Check:mTolErr  = 1e-2
+
+! Logging
+Init:showProcesses        = off
+Init:showMultipartonInteractions = off
+Init:showChangedSettings  = on
+Next:numberShowEvent      = 0
+Next:numberShowInfo       = 0
+Next:numberShowProcess    = 0

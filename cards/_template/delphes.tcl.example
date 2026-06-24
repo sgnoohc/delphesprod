@@ -1,0 +1,3 @@
+# Optional per-process Delphes detector card. Rename to `delphes.tcl` to use
+# INSTEAD of cards/defaults/delphes_CMS.tcl (e.g. to enable FatJets / jet
+# substructure for this process). Otherwise the shared CMS default is used.

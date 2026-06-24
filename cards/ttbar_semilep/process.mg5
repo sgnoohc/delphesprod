@@ -1,0 +1,14 @@
+# ttbar semileptonic at the LHC.
+# Top decays explicit so they appear in the LHE parton tree.
+# Both lepton+jets charge orderings included so the sample is charge-symmetric.
+
+import model sm
+define p = g u c d s u~ c~ d~ s~
+define j = g u c d s u~ c~ d~ s~
+define l+ = e+ mu+
+define l- = e- mu-
+define vl = ve vm vt
+define vl~ = ve~ vm~ vt~
+
+generate    p p > t t~, (t > b w+, w+ > l+ vl), (t~ > b~ w-, w- > j j) @0
+add process p p > t t~, (t > b w+, w+ > j j),   (t~ > b~ w-, w- > l- vl~) @1

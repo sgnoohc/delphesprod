@@ -1,0 +1,8 @@
+# Runtime Python deps for the flatten step + CLI.
+# On HiPerGator these are already present in system /usr/bin/python3 (3.9),
+# so a plain checkout runs with no install. Listed here for other sites.
+uproot
+awkward
+pyarrow
+numpy
+tomli; python_version < "3.11"

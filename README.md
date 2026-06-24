@@ -1,0 +1,118 @@
+# delphesprod
+
+Standalone event-production chain: **MadGraph5_aMC@NLO → Pythia8 → Delphes (CMS card) → flat parquet**.
+
+Each event becomes one row in a parquet file holding both reco-level detector
+objects and the parton-level hard-process tree. You define a MadGraph card per
+process; the package handles showering, fast detector simulation, flattening,
+and SLURM submission.
+
+The package is fully self-contained: a fresh checkout depends on nothing in any
+personal home directory. ROOT comes from CVMFS CMSSW (vendored in `setup/env.sh`),
+and the MG5/Pythia/Delphes tree is built once by `delphesprod bootstrap`.
+
+## Quickstart (HiPerGator)
+
+```bash
+git clone <repo> && cd delphesprod
+cp config.example.toml config.toml          # edit [output].base etc. if you like
+pip install -e .                             # optional; or rely on `python -m delphesprod`
+
+delphesprod bootstrap                        # ONE-TIME: download + build MG5/Pythia/Delphes (~20-30 min)
+source setup/env.sh && delphesprod doctor    # verify CVMFS, ROOT, MG5, Delphes, python libs
+
+delphesprod run ttbar_semilep 200 1          # full chain, one seed -> parquet
+```
+
+## Defining a process
+
+One process = one directory under `cards/`. Only `process.mg5` is required.
+
+```bash
+delphesprod init my_proc                     # cp -r cards/_template cards/my_proc
+$EDITOR cards/my_proc/process.mg5            # write your generate / add process lines
+delphesprod run my_proc 1000 1
+```
+
+Optional per-process sidecars (rename the `.example` stubs to activate):
+
+| file | effect |
+|---|---|
+| `run.opts` | extra `set <var> <val>` lines for the MG5 launch (e.g. VBF unweighting) |
+| `madspin.dat` | enables MadSpin; pipeline uses the decayed LHE |
+| `pythia8.cmnd` | per-process shower card (else `cards/defaults/pythia8.cmnd`) |
+| `delphes.tcl` | per-process detector card (else `cards/defaults/delphes_CMS.tcl`) |
+
+## Running
+
+```bash
+delphesprod run <proc> <nevents> [seed]         # full chain; --skip 01,02,03,04 ; --cleanup
+delphesprod madgraph|shower|delphes|flatten <proc> [seed]   # one stage (debug)
+delphesprod list                                # processes + which optional cards each has
+```
+
+## SLURM
+
+```bash
+# one process, an array of seeds
+delphesprod submit --proc ttbar_semilep --seeds 1-20 --nevt 10000 --cleanup
+
+# many (proc, seed) pairs with a global concurrency cap
+delphesprod manifest ttbar_semilep=50 tth_hbb=50 -o work.txt
+delphesprod submit --manifest work.txt --nevt 50000 --cap 150 --burst --cleanup
+```
+
+`--burst` uses the preemptible `avery-b` qos. Bulky HepMC/Delphes intermediates
+go to node-local `$SLURM_TMPDIR` automatically; only `lhe/`, `flat/`, and `logs/`
+are kept on `/blue`. `--cleanup` drops the intermediates once the parquet exists.
+
+## Output schema
+
+One parquet row per event:
+
+| column | type | meaning |
+|---|---|---|
+| `process` | str | card bundle name |
+| `event_idx` | int64 | row index |
+| `reco_Jet_{PT,Eta,Phi,Mass,BTag,TauTag,Flavor}` | jagged | Delphes jets |
+| `reco_{Electron,Muon}_{PT,Eta,Phi,Charge,IsolationVar}` | jagged | leptons |
+| `reco_Photon_{PT,Eta,Phi,IsolationVar}` | jagged | photons |
+| `reco_MissingET_{MET,Phi}` | jagged | MET |
+| `reco_EFlow{Track,Photon,NeutralHadron}_*` | jagged | PF constituents (when in the Delphes card) |
+| `parton_{pdg,status,mother1,mother2}` | jagged int | LHE hard-process tree |
+| `parton_{px,py,pz,E,mass}` | jagged float | LHE 4-momenta |
+
+## Configuration
+
+All site-specific paths live in `config.toml` (copied from `config.example.toml`,
+git-ignored). See that file for the documented keys: `[tools].mg5_home`,
+`[bootstrap]`, `[toolchain]` (CMSSW/arch pins), `[beams]`, `[output]`, `[slurm]`.
+
+## Layout
+
+```
+config.toml            site paths (single source of truth; bash + python read it)
+setup/env.sh           vendored environment: CVMFS CMSSW ROOT + tool paths + pins
+cards/<proc>/          one bundle per process (process.mg5 [+ optional sidecars])
+cards/defaults/        shared pythia8.cmnd + delphes_CMS.tcl
+scripts/01..03         bash stage scripts (MG5, shower, Delphes)
+src/delphesprod/       config, cards, flatten, chain, manifest, submit, doctor, bootstrap, cli
+slurm/run_chain.sbatch single parameterized array template
+```
+
+## Notes
+
+- ROOT is taken **only** from CVMFS CMSSW, ABI-matched to the bootstrapped Delphes.
+  The native `root/6.38.00` module is deliberately not used.
+- The flatten step is pure `uproot` (no ROOT) and runs on system python, kept out
+  of the CMSSW environment.
+- **HEPTools versions:** `bootstrap` runs MG5's `install pythia8 / Delphes`, which
+  fetch the *latest* HEPTools (e.g. Pythia 8.316), not the versions contemporaneous
+  with the pinned `mg5_version`. The stage scripts are written to be version-robust
+  (e.g. stage 02 sets `Main:numberOfEvents` to the exact LHE event count rather than
+  the `-1` that Pythia ≥8.310 rejects). If you need an exact Pythia pin, pre-build the
+  tree and point `[tools].mg5_home` at it instead of bootstrapping.
+- During `bootstrap`, Delphes logs a compile error for `DelphesCMSFWLite` — this is
+  **expected and harmless**: it needs CMS FWLite libraries absent from a generic
+  build, and we only use `DelphesHepMC2`, which builds successfully before it.
+  `delphesprod doctor` confirms the binary we need is present.

@@ -1,0 +1,27 @@
+# ============================================================
+# delphesprod process card.  Copy this directory with:
+#     delphesprod init <your_name>
+#
+# Only this file (process.mg5) is required. The optional sidecars in this
+# template carry an ".example" suffix so they stay INACTIVE until you rename
+# them (e.g. `mv madspin.dat.example madspin.dat`).
+#
+# This file is a normal MadGraph5 command script: it is fed to mg5_aMC verbatim
+# before `output`. Do NOT set nevents, iseed, or ebeam here — the pipeline
+# injects those at launch (beam energy comes from [beams] in config.toml).
+# ============================================================
+
+import model sm
+
+# Multiparticle shortcuts (optional, but handy)
+define p  = g u c d s u~ c~ d~ s~
+define j  = g u c d s u~ c~ d~ s~
+define l+ = e+ mu+
+define l- = e- mu-
+define vl = ve vm vt
+define vl~ = ve~ vm~ vt~
+
+# The hard process. Decay chains in parentheses keep the decay partons in the
+# LHE tree (this is what the parquet "parton_*" branches capture).
+generate    p p > t t~, (t > b w+, w+ > l+ vl), (t~ > b~ w-, w- > j j) @0
+add process p p > t t~, (t > b w+, w+ > j j),   (t~ > b~ w-, w- > l- vl~) @1

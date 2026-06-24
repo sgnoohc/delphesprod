@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "delphesprod"
+version = "0.1.0"
+description = "Standalone MadGraph5 -> Pythia8 -> Delphes -> parquet event-production chain"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "uproot",
+    "awkward",
+    "pyarrow",
+    "numpy",
+    "tomli; python_version < '3.11'",
+]
+
+[project.scripts]
+delphesprod = "delphesprod.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

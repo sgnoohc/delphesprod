@@ -1,0 +1,23 @@
+# site-specific config (copy from config.example.toml)
+/config.toml
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# bootstrapped tool tree + generated samples (large, never in git)
+/external/
+/samples/
+/delphesprod-tools/
+
+# logs / scratch
+*.log
+/slurm/logs/
+
+# MG5-generated DJR / pT histogram dumps (written to cwd by a run)
+/djrs.dat
+/pts.dat

@@ -1,0 +1,10 @@
+# Optional MadSpin card. Rename to `madspin.dat` to activate (its mere presence
+# turns on madspin=ON at launch and the pipeline uses the decayed LHE).
+# Example: force tau -> l nu nu on a Z -> tautau subprocess.
+# set seed 1
+# set spinmode none
+# decay ta+ > e+ ve vt~
+# decay ta+ > mu+ vm vt~
+# decay ta- > e- ve~ vt
+# decay ta- > mu- vm~ vt
+# launch

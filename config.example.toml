@@ -1,0 +1,44 @@
+# delphesprod site configuration.
+#
+# Copy this file to `config.toml` and edit for your site:
+#     cp config.example.toml config.toml
+#
+# `config.toml` is git-ignored — it holds machine-specific paths. This example
+# is the committed template and is also used as a fallback if config.toml is
+# absent (so `delphesprod env` / `doctor` still work before you copy it).
+
+[tools]                       # where the simulation binaries live
+mg5_home    = ""              # EMPTY by default — populated by `delphesprod bootstrap`.
+                              # No shared default: every checkout installs its own tree.
+pythia8data = ""              # override Pythia8 xmldoc; "" = auto under mg5_home
+
+[bootstrap]                   # used only by `delphesprod bootstrap`
+prefix      = "/blue/avery/p.chang/work/delphesprod-tools"  # MG5 tree install location
+                              # (kept OUTSIDE the git repo — it's ~500 MB compiled)
+mg5_version = "3.5.0"         # pinned MG5_aMC release to download + build
+# url       = ""              # optional override for the MG5 tarball source. Accepts a
+                              # local path or file:// (pre-staged tarball — robust, since
+                              # launchpad's URL scheme is unstable) or a custom http(s) URL.
+                              # Empty -> fetch from launchpad for [bootstrap].mg5_version.
+
+[toolchain]                   # vendored ROOT environment (replaces personal ~/setuproot.sh)
+scram_arch = "el9_amd64_gcc13"
+cmssw      = "CMSSW_16_0_0_pre4"   # CVMFS CMSSW that Delphes is ABI-matched to
+
+[beams]
+ebeam1 = 6800                 # GeV per beam (13.6 TeV pp). Injected at MG5 launch.
+ebeam2 = 6800
+
+[output]
+base      = "/blue/avery/p.chang/work/delphesprod/samples"  # kept products: lhe/, flat/, logs/
+scratch   = ""                # bulky throwaways (hepmc/, delphes/); "" = base.
+                              # SLURM overrides this with $SLURM_TMPDIR automatically.
+flat_base = ""                # optional separate home for parquet (e.g. /cmsuf); "" = base
+
+[slurm]
+account   = "avery"
+qos       = "avery"           # "avery-b" for burst/preemptible (see `submit --burst`)
+partition = "hpg-default"
+time      = "08:00:00"
+mem       = "16G"
+cpus      = 4
