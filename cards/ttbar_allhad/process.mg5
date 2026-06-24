@@ -1,0 +1,9 @@
+# ttbar fully-hadronic at the LHC.
+# Both tops decay hadronically (W -> jj). Top decays written explicitly so the
+# decay partons appear in the LHE parton tree.
+
+import model sm
+define p = g u c d s u~ c~ d~ s~
+define j = g u c d s u~ c~ d~ s~
+
+generate p p > t t~, (t > b w+, w+ > j j), (t~ > b~ w-, w- > j j)

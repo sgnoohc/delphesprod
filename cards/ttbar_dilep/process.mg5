@@ -1,0 +1,13 @@
+# ttbar dileptonic at the LHC.
+# Both tops decay leptonically (W -> l nu, l = e/mu). Top decays written
+# explicitly so the decay partons (leptons + neutrinos + b) appear in the LHE
+# parton tree.
+
+import model sm
+define p = g u c d s u~ c~ d~ s~
+define l+ = e+ mu+
+define l- = e- mu-
+define vl = ve vm vt
+define vl~ = ve~ vm~ vt~
+
+generate p p > t t~, (t > b w+, w+ > l+ vl), (t~ > b~ w-, w- > l- vl~)
