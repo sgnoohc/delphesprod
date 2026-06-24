@@ -1,0 +1,9 @@
+# W+W- diboson production at the LHC.
+# Do NOT set nevents / iseed / ebeam here — the pipeline injects those at launch
+# (beam energy comes from [beams] in config.toml). The W bosons are showered and
+# decayed by Pythia8; the LHE parton tree captures the hard-process W+ W-.
+
+import model sm
+define p = g u c d s u~ c~ d~ s~
+
+generate p p > w+ w-

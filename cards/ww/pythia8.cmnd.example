@@ -1,0 +1,4 @@
+# Optional per-process Pythia8 shower overrides. Rename to `pythia8.cmnd` to use
+# INSTEAD of cards/defaults/pythia8.cmnd. Only needed if this process wants
+# different shower/hadronization settings. Beams:LHEF, HEPMCoutput:file, and
+# Main:numberOfEvents are injected by stage 02 — keep this to physics knobs.
