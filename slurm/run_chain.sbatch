@@ -22,6 +22,14 @@ set -euo pipefail
 # can leave a minimal PATH, so guarantee the basics.
 export PATH="/usr/bin:/bin${PATH:+:$PATH}"
 
+# Sanitize a possibly-polluted inherited environment. With --export=ALL, if the
+# submitting shell had `source setup/env.sh` active, it carries CMSSW's
+# LD_LIBRARY_PATH / PYTHONHOME, which makes the top-level /usr/bin/python3 here
+# link CMSSW's libpython and die with "No module named 'encodings'". The chain's
+# bash stages re-source setup/env.sh themselves, so it is safe (and necessary)
+# to drop these for the top-level driver python.
+unset LD_LIBRARY_PATH PYTHONHOME PYTHONPATH ROOTSYS
+
 : "${DELPHESPROD_HOME:?set via --export}"
 : "${NEVT:?set via --export}"
 : "${MODE:?set via --export}"
