@@ -38,6 +38,32 @@ PROCDIR_NAME="proc_${PROC}_seed${SEED}"
 PROCDIR="$WORKDIR/$PROCDIR_NAME"
 SCRIPT="$WORKDIR/mg5_input_${PROC}_seed${SEED}.dat"
 LOG="$LOGDIR/01_mg5_seed${SEED}.log"
+DST_LHE="$LHEDIR/${PROC}_seed${SEED}.lhe.gz"
+
+# --- Gridpack fast path -------------------------------------------------------
+# If the Python layer resolved a current gridpack (DPROD_GRIDPACK), generate this
+# seed from it: unpack to node-local scratch and run `run.sh <nevt> <seed>`. No
+# per-seed recompile, and nothing lands on /blue except the LHE. Falls through to
+# the per-seed `output`+compile below when no gridpack is set (e.g. MadSpin).
+if [ -n "${DPROD_GRIDPACK:-}" ] && [ -f "$DPROD_GRIDPACK" ]; then
+  RUNROOT="$DPROD_SCRATCH/$PROC"
+  mkdir -p "$RUNROOT"
+  RUNAREA=$(mktemp -d -p "$RUNROOT" "gprun_seed${SEED}_XXXXXX")
+  trap 'rm -rf "$RUNAREA"' EXIT
+  echo "[01_madgraph] gridpack run ($PROC, nevents=$NEVT, seed=$SEED, log=$LOG)"
+  tar xzf "$DPROD_GRIDPACK" -C "$RUNAREA"
+  ( cd "$RUNAREA" && ./run.sh "$NEVT" "$SEED" ) > "$LOG" 2>&1 || {
+    echo "[01_madgraph] gridpack run.sh failed; tail of log:" >&2
+    tail -40 "$LOG" >&2
+    exit 1
+  }
+  SRC_LHE="$RUNAREA/events.lhe.gz"
+  [ -f "$SRC_LHE" ] || { echo "[01_madgraph] no LHE at $SRC_LHE" >&2; tail -40 "$LOG" >&2; exit 1; }
+  cp "$SRC_LHE" "$DST_LHE"
+  echo "[01_madgraph] wrote $DST_LHE (from gridpack)"
+  exit 0
+fi
+# --- else: per-seed output + compile (fallback) -------------------------------
 
 EBEAM1="${DPROD_EBEAM1:-6800}"
 EBEAM2="${DPROD_EBEAM2:-6800}"

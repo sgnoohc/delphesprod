@@ -23,6 +23,7 @@ def _scripts_dir(cfg: Config) -> Path:
 
 def run_chain(proc: str, nevents: int, seed: int = 1,
               skip: Iterable[str] = (), cleanup: bool = False,
+              use_gridpack: bool = True,
               cfg: Config | None = None) -> Path:
     """Run the chain; return the parquet path. Raises on any stage failure."""
     cfg = cfg or Config()
@@ -32,6 +33,19 @@ def run_chain(proc: str, nevents: int, seed: int = 1,
     env = os.environ.copy()
     env.update(bundle.env())
     scripts = _scripts_dir(cfg)
+
+    # Gridpack: if a current gridpack exists, stage 01 generates this seed from
+    # it (no per-seed recompile). Build on demand for an interactive run, but
+    # NEVER inside a SLURM array task — `submit` pre-builds once to avoid array
+    # tasks racing to build the same gridpack. No gridpack -> per-seed fallback.
+    env.pop("DPROD_GRIDPACK", None)
+    if use_gridpack and "01" not in skip_set:
+        from delphesprod import gridpack
+        allow_build = "SLURM_ARRAY_TASK_ID" not in os.environ
+        gp = gridpack.ensure(cfg, proc, allow_build=allow_build)
+        if gp is not None:
+            env["DPROD_GRIDPACK"] = str(gp)
+            print(f"[chain] using gridpack {gp}")
 
     t0 = time.time()
     print(f"=== delphesprod chain: proc={proc} nevents={nevents} seed={seed} "

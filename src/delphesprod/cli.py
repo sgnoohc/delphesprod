@@ -57,12 +57,28 @@ def cmd_bootstrap(args) -> int:
     return bootstrap()
 
 
+def cmd_gridpack(args) -> int:
+    from delphesprod import gridpack
+    cfg = Config()
+    try:
+        gp = gridpack.build(cfg, args.proc, force=args.force)
+    except gridpack.GridpackUnsupported as e:
+        print(f"{e}", file=sys.stderr)
+        return 0
+    except subprocess.CalledProcessError as e:
+        print(f"gridpack build failed (exit {e.returncode})", file=sys.stderr)
+        return e.returncode or 1
+    print(f"gridpack: {gp}")
+    return 0
+
+
 def cmd_run(args) -> int:
     from delphesprod.chain import run_chain
     skip = args.skip.split(",") if args.skip else []
     try:
         run_chain(args.proc, args.nevents, args.seed,
-                  skip=skip, cleanup=args.cleanup)
+                  skip=skip, cleanup=args.cleanup,
+                  use_gridpack=not args.no_gridpack)
     except subprocess.CalledProcessError as e:
         print(f"stage failed (exit {e.returncode})", file=sys.stderr)
         return e.returncode or 1
@@ -107,9 +123,35 @@ def cmd_manifest(args) -> int:
     return 0
 
 
+def _submit_procs(args) -> list:
+    """The distinct process names a submit will touch (for gridpack pre-build)."""
+    if args.manifest:
+        procs = []
+        for line in Path(args.manifest).read_text().splitlines():
+            line = line.strip()
+            if line:
+                procs.append(line.split()[0])
+        return sorted(set(procs))
+    return [args.proc] if args.proc else []
+
+
 def cmd_submit(args) -> int:
-    from delphesprod import submit
+    from delphesprod import submit, gridpack
     cfg = Config()
+
+    # Pre-build gridpacks ONCE here (login node) so the array tasks reuse them
+    # and never race to build. A MadSpin process has no gridpack and uses the
+    # per-seed compile on the node.
+    if not args.no_gridpack and not args.dry_run:
+        for proc in _submit_procs(args):
+            try:
+                gp = gridpack.ensure(cfg, proc, allow_build=True)
+            except subprocess.CalledProcessError as e:
+                print(f"[submit] gridpack build failed for '{proc}' "
+                      f"(exit {e.returncode}); aborting", file=sys.stderr)
+                return e.returncode or 1
+            print(f"[submit] gridpack {'ready: ' + str(gp) if gp else 'N/A (madspin -> per-seed compile): ' + proc}")
+
     if args.manifest:
         cmd = submit.build_sbatch_cmd(
             cfg=cfg, nevt=args.nevt, mode="manifest",
@@ -145,12 +187,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("doctor", help="verify environment + dependencies").set_defaults(func=cmd_doctor)
     sub.add_parser("bootstrap", help="download + build MG5/Pythia8/Delphes").set_defaults(func=cmd_bootstrap)
 
+    sp = sub.add_parser("gridpack", help="build a relocatable MadGraph gridpack (compile once, reuse per seed)")
+    sp.add_argument("proc")
+    sp.add_argument("--force", action="store_true", help="rebuild even if a current gridpack exists")
+    sp.set_defaults(func=cmd_gridpack)
+
     sp = sub.add_parser("run", help="run the full chain for one (proc, seed)")
     sp.add_argument("proc")
     sp.add_argument("nevents", type=int)
     sp.add_argument("seed", nargs="?", type=int, default=1)
     sp.add_argument("--skip", default="", help="comma list of stages to skip (01,02,03,04)")
     sp.add_argument("--cleanup", action="store_true", help="drop intermediates after flatten")
+    sp.add_argument("--no-gridpack", action="store_true",
+                    help="force the per-seed output+compile instead of a gridpack")
     sp.set_defaults(func=cmd_run)
 
     sp = sub.add_parser("madgraph", help="stage 01 only")
@@ -183,6 +232,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--cap", type=int, help="max concurrent array tasks (%%N)")
     sp.add_argument("--burst", action="store_true", help="use avery-b preemptible qos")
     sp.add_argument("--cleanup", action="store_true")
+    sp.add_argument("--no-gridpack", action="store_true",
+                    help="skip gridpack pre-build; array tasks use per-seed compile")
     sp.add_argument("--dry-run", action="store_true", help="print the sbatch cmd, don't submit")
     sp.set_defaults(func=cmd_submit)
 
